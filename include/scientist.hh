@@ -79,6 +79,8 @@ template <class T, class U>
 class Experiment
 {
 public:
+    using Measurement = std::tuple<T, std::chrono::nanoseconds, std::exception_ptr>;
+
     Experiment(std::string name, Operation<T> control, Operation<T> candidate,
                std::list<Predicate> ignorePredicates,
                std::list<Predicate> runIfPredicates, std::list<Publisher<U>> publishers,
@@ -97,40 +99,57 @@ public:
         if (!RunCandidate())
             return control_();
 
-        T controlResult;
+        std::tuple<T, Observation<U>> result = MeasureBoth();
+        Observation<U> observation = std::get<1>(result);
+        T controlResult = std::get<0>(result);
+
+        Publish(observation);
+
+        if (observation.ControlException())
+            std::rethrow_exception(observation.ControlException());
+
+        return controlResult;
+    }
+
+private:
+
+    std::tuple<T, Observation<U>> MeasureBoth() const
+    {
+        if (RunControlFirst())
+        {
+            Measurement control = Measure(control_);
+            Measurement candidate = Measure(candidate_);
+            return std::make_tuple(std::get<0>(control), CreateObservation(control, candidate));
+
+        } else
+        {
+            Measurement candidate = Measure(candidate_);
+            Measurement control = Measure(control_);
+            return std::make_tuple(std::get<0>(control), CreateObservation(control, candidate));
+        }
+    }
+
+    Observation<U> CreateObservation(Measurement control, Measurement candidate) const
+    {
+        T controlResult ;
         T candidateResult;
         std::chrono::nanoseconds controlDuration;
         std::chrono::nanoseconds candidateDuration;
         std::exception_ptr controlException;
         std::exception_ptr candidateException;
 
-        if (RunControlFirst())
-        {
-            std::tie(controlResult, controlDuration, controlException) = Measure(control_);
-            std::tie(candidateResult, candidateDuration, candidateException) = Measure(candidate_);
-
-        } else
-        {
-            std::tie(candidateResult, candidateDuration, candidateException) = Measure(candidate_);
-            std::tie(controlResult, controlDuration, controlException) = Measure(control_);
-        }
+        std::tie(controlResult, controlDuration, controlException) = control;
+        std::tie(candidateResult, candidateDuration, candidateException) = candidate;
 
         bool controlThrew = static_cast<bool>(controlException);
         bool candidateThrew = static_cast<bool>(candidateException);
 
         bool success = (compare_ && compare_(controlResult, candidateResult) && controlThrew == candidateThrew) || Ignored();
 
-        Observation<U> observation(name_, success, controlDuration, controlException, Cleanup(controlResult),
-                                candidateDuration, candidateException, Cleanup(candidateResult));
-        Publish(observation);
-
-        if (controlException)
-            std::rethrow_exception(controlException);
-
-        return controlResult;
+        return Observation<U>(name_, success, controlDuration, controlException, Cleanup(controlResult),
+                                          candidateDuration, candidateException, Cleanup(candidateResult));
     }
 
-private:
     // TODO: investigate if this actually necessary
     template <class Q = T>
     typename std::enable_if<std::is_same<Q, U>::value, U>::type
@@ -159,11 +178,12 @@ private:
         return dist(mt) == 0;
     }
 
-    std::tuple<T, std::chrono::nanoseconds, std::exception_ptr> Measure(Operation<T> f) const
+    Measurement Measure(Operation<T> f) const
     {
-        auto start = std::chrono::steady_clock::now();
         T result;
         std::exception_ptr exception;
+        auto start = std::chrono::steady_clock::now();
+
         try
         {
             result = f();
