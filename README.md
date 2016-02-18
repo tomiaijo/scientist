@@ -220,3 +220,4 @@ make tests
 - [ ] Finalize the API
 - [ ] Allow more than one `Try` function
 - [ ] Define an interface for publishers and register them separately (See [IResultPublisher](https://github.com/Haacked/Scientist.net/blob/master/src/Scientist/IResultPublisher.cs) in Scientist.NET)
+- [ ] Add context to experiments (See [Ruby version](https://github.com/github/scientist/blob/master/README.md#adding-context))
