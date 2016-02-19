@@ -49,6 +49,7 @@ public:
     virtual void PublishAsync(Publisher<U> publisher) = 0;
     virtual void Compare(Compare<T> compare) = 0;
     virtual void Cleanup(Transform<T,U> cleanup) = 0;
+    virtual void Context(std::string key, std::string value) = 0;
 };
 
 using Operation = std::function<T()>;
@@ -78,6 +79,9 @@ class Observation
     std::chrono::nanoseconds CandidateDuration() const;
     std::exception_ptr CandidateException() const;
     T CandidateResult() const;
+
+    std::list<std::string> ContextKeys() const;
+    std::pair<bool, const std::string&> Context(std::string key) const;
 };
 
 ```
@@ -191,6 +195,34 @@ int res = Scientist<int>::Science("", [&](ExperimentInterface<int>& e)
 
 See [RunIf tests](test/run_if.cc) for more examples.
 
+# Context
+
+You can add contextual information to observations as string key-value pairs.
+Writing same key multiple times overwrites the previous value.
+This information can be queried from `Observation` as shown below:
+
+```cpp
+Scientist<int>::Science("", [](ExperimentInterface<int>& e)
+{
+    e.Use([]() { return 42;});
+    e.Try([]() { return 0;});
+    e.Context("key1", "value");
+    e.Context("key2", "value");
+    e.Publish([](const Observation<int>& o)
+    {
+        for (std::string key: o.ContextKeys())
+        {
+            std::pair<bool, std::string> value = o.Context(key);
+
+            if (value.first)
+                std::cout << key << " : " << value.second << std::endl;
+        }
+    });
+});
+```
+
+The first value (`bool`) of the returned pair from `Observation::Context` is `true` if the requested key was found.
+
 # Exceptions
 
 Exceptions from both `Try` and `Use` functions are caught and stored in the `Observation`. 
@@ -220,4 +252,4 @@ make tests
 - [ ] Finalize the API
 - [ ] Allow more than one `Try` function
 - [ ] Define an interface for publishers and register them separately (See [IResultPublisher](https://github.com/Haacked/Scientist.net/blob/master/src/Scientist/IResultPublisher.cs) in Scientist.NET)
-- [ ] Add context to experiments (See [Ruby version](https://github.com/github/scientist/blob/master/README.md#adding-context))
+- [x] Add context to experiments (See [Ruby version](https://github.com/github/scientist/blob/master/README.md#adding-context))

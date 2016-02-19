@@ -9,6 +9,7 @@
 #include <random>
 #include <thread>
 #include <tuple>
+#include <unordered_map>
 
 template <class T>
 using Operation = std::function<T()>;
@@ -30,10 +31,10 @@ template <class T>
 class Observation
 {
 public:
-    Observation(std::string name, bool success,
+    Observation(std::string name, bool success, std::unordered_map<std::string, std::string> context,
                 std::chrono::nanoseconds controlDuration, std::exception_ptr controlException, T controlResult,
                 std::chrono::nanoseconds candidateDuration, std::exception_ptr candidateException, T candidateResult) :
-            name_(std::move(name)), success_(success),
+            name_(std::move(name)), success_(success), context_(context),
             controlDuration_(controlDuration), controlException_(controlException), controlResult_(controlResult),
             candidateDuration_(candidateDuration), candidateException_(candidateException), candidateResult_(candidateResult)
     {}
@@ -49,9 +50,30 @@ public:
     std::exception_ptr CandidateException() const { return candidateException_; }
     T CandidateResult() const { return candidateResult_; }
 
+    std::list<std::string> ContextKeys() const
+    {
+        std::list<std::string> keys;
+
+        for (const auto& p: context_)
+            keys.push_back(p.first);
+
+        return keys;
+    }
+    std::pair<bool, const std::string&> Context(std::string key) const
+    {
+        std::unordered_map<std::string, std::string>::const_iterator ret = context_.find(key);
+
+        if (ret != context_.cend())
+            return std::make_pair(true, ret->second);
+
+        return std::make_pair(false, std::string());
+    }
+
 private:
     std::string name_;
     bool success_;
+    std::unordered_map<std::string, std::string> context_;
+
     std::chrono::nanoseconds controlDuration_;
     std::exception_ptr controlException_;
     T controlResult_;
@@ -81,12 +103,13 @@ class Experiment
 public:
     using Measurement = std::tuple<T, std::chrono::nanoseconds, std::exception_ptr>;
 
-    Experiment(std::string name, Operation<T> control, Operation<T> candidate,
+    Experiment(std::string name, std::unordered_map<std::string, std::string> context,
+               Operation<T> control, Operation<T> candidate,
                std::list<Predicate> ignorePredicates,
                std::list<Predicate> runIfPredicates, std::list<Publisher<U>> publishers,
                std::list<Publisher<U>> asyncPublishers, Transform<T,U> cleanup,
                Compare<T> compare) :
-            name_(name), control_(control), candidate_(candidate),
+            name_(name), context_(context), control_(control), candidate_(candidate),
             ignorePredicates_(ignorePredicates), runIfPredicates_(runIfPredicates),
             publishers_(publishers), asyncPublishers_(asyncPublishers),
             cleanup_(cleanup), compare_(compare)
@@ -146,7 +169,7 @@ private:
 
         bool success = (compare_ && compare_(controlResult, candidateResult) && controlThrew == candidateThrew) || Ignored();
 
-        return Observation<U>(name_, success, controlDuration, controlException, Cleanup(controlResult),
+        return Observation<U>(name_, success, context_, controlDuration, controlException, Cleanup(controlResult),
                                           candidateDuration, candidateException, Cleanup(candidateResult));
     }
 
@@ -231,6 +254,7 @@ private:
     }
 
     std::string name_;
+    std::unordered_map<std::string, std::string> context_;
     Operation<T> control_;
     Operation<T> candidate_;
     Compare<T> compare_;
@@ -253,6 +277,7 @@ public:
     virtual void PublishAsync(Publisher<U> publisher) = 0;
     virtual void Compare(Compare<T> compare) = 0;
     virtual void Cleanup(Transform<T,U> cleanup) = 0;
+    virtual void Context(std::string key, std::string value) = 0;
 };
 
 template <class T, class U>
@@ -301,11 +326,16 @@ public:
         cleanup_ = cleanup;
     }
 
+    virtual void Context(std::string key, std::string value)
+    {
+        context_[key] = value;
+    }
+
     template <class Q = T>
     typename std::enable_if<has_operator_equal<Q>::value, Experiment<T,U>>::type
     Build() const
     {
-        return Experiment<T, U>(name_, control_, candidate_, ignorePredicates_, runIfPredicates_,
+        return Experiment<T, U>(name_, context_, control_, candidate_, ignorePredicates_, runIfPredicates_,
                                 publishers_, asyncPublishers_, cleanup_, compare_ ? compare_ : std::equal_to<T>());
     }
 
@@ -313,7 +343,7 @@ public:
     typename std::enable_if<!has_operator_equal<Q>::value, Experiment<T,U>>::type
     Build() const
     {
-        return Experiment<T, U>(name_, control_, candidate_, ignorePredicates_, runIfPredicates_,
+        return Experiment<T, U>(name_, context_, control_, candidate_, ignorePredicates_, runIfPredicates_,
                                 publishers_, asyncPublishers_, cleanup_, compare_);
     }
 private:
@@ -326,6 +356,7 @@ private:
     std::list<Publisher<U>> asyncPublishers_;
     Transform<T,U> cleanup_;
     ::Compare<T> compare_;
+    std::unordered_map<std::string, std::string> context_;
 };
 
 template <class T, class U = T>
