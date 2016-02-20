@@ -41,6 +41,7 @@ template <class T, class U = T>
 class ExperimentInterface
 {
 public:
+    virtual void BeforeRun(Setup setup) = 0;
     virtual void Use(Operation<T> control) = 0;
     virtual void Try(Operation<T> candidate) = 0;
     virtual void Ignore(Predicate ignore) = 0;
@@ -57,6 +58,7 @@ using Compare = std::function<bool(const T&, const T&)>;
 using Predicate = std::function<bool()>;
 using Publisher = std::function<void(const Observation<T>&)>;
 using Transform = std::function<U(const T&)>;
+using Setup = std::function<void()>;
 ```
 
 Template parameter `T` denotes the result type of the operations, and `U` the possible cleaned result type (See [Cleanup](#control-the-stored-results))
@@ -224,6 +226,25 @@ Scientist<int>::Science("", [](ExperimentInterface<int>& e)
 ```
 
 The first value (`bool`) of the returned pair from `Observation::Context` is `true` if the requested key was found.
+
+# Expensive Setup
+
+If an experiment requires expensive setup that should only occur once for enabled experiments, register a setup with 
+`BeforeRun` function:
+
+```cpp
+Scientist<int>::Science("", [&](ExperimentInterface<int>& e)
+{
+    ...
+    e.BeforeRun([&]() { ... });
+});
+```
+
+You can register any number of setup functions, and they are run in the order of registration.
+These functions are only run if the experiment is enabled (See [RunIf](#disable-experiments)). 
+
+See [BeforeRun tests](test/before_run.cc) for more examples.
+
 
 # Exceptions
 

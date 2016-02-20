@@ -27,6 +27,8 @@ using Publisher = std::function<void(const Observation<T>&)>;
 template <class T, class U>
 using Transform = std::function<U(const T&)>;
 
+using Setup = std::function<void()>;
+
 template <class T>
 class Observation
 {
@@ -104,12 +106,13 @@ public:
     using Measurement = std::tuple<T, std::chrono::nanoseconds, std::exception_ptr>;
 
     Experiment(std::string name, std::unordered_map<std::string, std::string> context,
+               std::list<::Setup> setups,
                Operation<T> control, Operation<T> candidate,
                std::list<Predicate> ignorePredicates,
                std::list<Predicate> runIfPredicates, std::list<Publisher<U>> publishers,
                std::list<Publisher<U>> asyncPublishers, Transform<T,U> cleanup,
                Compare<T> compare) :
-            name_(name), context_(context), control_(control), candidate_(candidate),
+            name_(name), context_(context), setups_(setups), control_(control), candidate_(candidate),
             ignorePredicates_(ignorePredicates), runIfPredicates_(runIfPredicates),
             publishers_(publishers), asyncPublishers_(asyncPublishers),
             cleanup_(cleanup), compare_(compare)
@@ -121,6 +124,8 @@ public:
     {
         if (!RunCandidate())
             return control_();
+
+        Setup();
 
         std::tuple<T, Observation<U>> result = MeasureBoth();
         Observation<U> observation = std::get<1>(result);
@@ -135,6 +140,12 @@ public:
     }
 
 private:
+
+    void Setup() const
+    {
+        for (::Setup s: setups_)
+            s();
+    }
 
     std::tuple<T, Observation<U>> MeasureBoth() const
     {
@@ -255,6 +266,7 @@ private:
 
     std::string name_;
     std::unordered_map<std::string, std::string> context_;
+    std::list<::Setup> setups_;
     Operation<T> control_;
     Operation<T> candidate_;
     Compare<T> compare_;
@@ -269,6 +281,7 @@ template <class T, class U = T>
 class ExperimentInterface
 {
 public:
+    virtual void BeforeRun(Setup setup) = 0;
     virtual void Use(Operation<T> control) = 0;
     virtual void Try(Operation<T> candidate) = 0;
     virtual void Ignore(Predicate ignore) = 0;
@@ -285,6 +298,11 @@ class ExperimentBuilder : public ExperimentInterface<T, U>
 {
 public:
     ExperimentBuilder(std::string name) : name_(std::move(name)) {}
+
+    virtual void BeforeRun(Setup setup)
+    {
+        setups_.push_back(setup);
+    }
 
     virtual void Use(Operation<T> control) override
     {
@@ -335,7 +353,7 @@ public:
     typename std::enable_if<has_operator_equal<Q>::value, Experiment<T,U>>::type
     Build() const
     {
-        return Experiment<T, U>(name_, context_, control_, candidate_, ignorePredicates_, runIfPredicates_,
+        return Experiment<T, U>(name_, context_, setups_, control_, candidate_, ignorePredicates_, runIfPredicates_,
                                 publishers_, asyncPublishers_, cleanup_, compare_ ? compare_ : std::equal_to<T>());
     }
 
@@ -343,11 +361,12 @@ public:
     typename std::enable_if<!has_operator_equal<Q>::value, Experiment<T,U>>::type
     Build() const
     {
-        return Experiment<T, U>(name_, context_, control_, candidate_, ignorePredicates_, runIfPredicates_,
+        return Experiment<T, U>(name_, context_, setups_, control_, candidate_, ignorePredicates_, runIfPredicates_,
                                 publishers_, asyncPublishers_, cleanup_, compare_);
     }
 private:
     std::string name_;
+    std::list<Setup> setups_;
     Operation<T> control_;
     Operation<T> candidate_;
     std::list<Predicate> ignorePredicates_;
