@@ -157,6 +157,8 @@ Scientist<Data, int>::Science("", [](ExperimentInterface<Data, int>& e)
 });
 ```
 The second template parameter denotes the type of the cleaned value (`int` in this case).
+If the cleanup is required (i.e. `T` != `U`) but is not given, `Observation` has the 
+default constructed value `U()`.
 
 See [cleanup tests](test/cleanup.cc) for more examples.
  
