@@ -18,3 +18,9 @@ add_executable(tests ${TEST_SOURCES})
 target_link_libraries(tests gtest gtest_main)
 
 add_test(all_tests tests)
+
+# Benchmarks
+add_subdirectory(benchmark/benchmark)
+include_directories(benchmark/benchmark/include)
+add_executable(benchmarks benchmark/benchmark.cc)
+target_link_libraries(benchmarks benchmark)
