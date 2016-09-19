@@ -27,7 +27,6 @@ TEST(BeforeRun, RunSetupsInOrder)
         e.Try([]() { return 0;});
         e.BeforeRun([&]() { ASSERT_FALSE(secondSetupCalled); firstSetupCalled = true; });
         e.BeforeRun([&]() { ASSERT_TRUE(firstSetupCalled); secondSetupCalled = true; });
-
     });
 
     ASSERT_TRUE(firstSetupCalled);
@@ -39,8 +38,8 @@ TEST(BeforeRun, DoesNotRunSetupIfExperimentIsDisabled)
     bool setupCalled = false;
     int res = Scientist<int>::Science("", [&](ExperimentInterface<int>& e)
     {
-        e.Use([]() { return 42;});
-        e.Try([]() { return 0;});
+        e.Use([]() { return 42; });
+        e.Try([]() { return 0; });
         e.RunIf([]() { return false; });
         e.BeforeRun([&]() { setupCalled = true; });
     });

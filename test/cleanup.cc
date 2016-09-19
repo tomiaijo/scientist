@@ -43,7 +43,7 @@ TEST(Cleanup, CleanupClass)
 
         });
         e.Cleanup([](const Data& d ) { return d.Field; });
-        e.Compare([]( const Data& a, const Data& b) { return a.Field == b.Field;});
+        e.Compare([](const Data& a, const Data& b) { return a.Field == b.Field;});
     });
 
     ASSERT_TRUE(published);
@@ -63,7 +63,7 @@ TEST(Cleanup, CleanupRequiredButMissingDoesNotCrash)
             ASSERT_EQ(o.ControlResult(), 0 /* default value for int */);
             ASSERT_EQ(o.CandidateResult(), 0 /* default value for int */);
         });
-        e.Compare([]( const Data& a, const Data& b) { return a.Field == b.Field;});
+        e.Compare([](const Data& a, const Data& b) { return a.Field == b.Field;});
     });
 
     ASSERT_TRUE(published);

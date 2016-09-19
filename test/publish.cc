@@ -2,7 +2,6 @@
 
 #include "scientist.hh"
 
-
 TEST(Publish, PublishesObservationFields)
 {
     bool published = false;
