@@ -2,7 +2,6 @@
 
 #include "scientist.hh"
 
-
 TEST(Ignore, IgnoresIfReturnsFalse)
 {
     bool published = false;

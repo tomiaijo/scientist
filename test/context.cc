@@ -14,7 +14,7 @@ TEST(Context, FindsValueForKey)
         e.Publish([&](const Observation<int>& o)
         {
             published = true;
-            std::pair<bool, const std::string&> c = o.Context("key");
+            std::pair<bool, std::string> c = o.Context("key");
 
             ASSERT_TRUE(c.first);
             ASSERT_EQ("value", c.second);
@@ -56,8 +56,8 @@ TEST(Context, ReturnsKeys)
         {
             published = true;
 
-            std::list<std::string> keys = o.ContextKeys();
-            keys.sort();
+            std::vector<std::string> keys = o.ContextKeys();
+            std::sort(keys.begin(), keys.end());
 
             ASSERT_EQ(2, keys.size());
             ASSERT_EQ("key1", keys.front());
