@@ -437,11 +437,11 @@ private:
     std::list<::Setup> setups_;
     Operation<T> control_;
     std::vector<Operation<T>> candidates_;
-    Compare<T> compare_;
     std::list<Predicate> ignorePredicates_;
     std::list<Predicate> runIfPredicates_;
     std::list<Publisher<U>> publishers_;
     std::list<Publisher<U>> asyncPublishers_;
+    Compare<T> compare_;
     Transform<T,U> cleanup_;
 };
 
