@@ -235,9 +235,9 @@ private:
 
     std::tuple<T, Observation<U>> MeasureBoth() const
     {
-        std::size_t index = std::numeric_limits<std::size_t>::min();
+        std::int32_t index = -1;
 
-        std::vector<std::size_t> indices;
+        std::vector<std::int32_t> indices;
 
         indices.resize(candidates_.size() + 1);
 
