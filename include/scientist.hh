@@ -198,7 +198,7 @@ public:
             name_(name), context_(context), setups_(setups), control_(control), candidates_(candidates),
             ignorePredicates_(ignorePredicates), runIfPredicates_(runIfPredicates),
             publishers_(publishers), asyncPublishers_(asyncPublishers),
-            cleanup_(cleanup), compare_(compare)
+            compare_(compare), cleanup_(cleanup)
     {
     };
 
@@ -235,7 +235,7 @@ private:
 
     std::tuple<T, Observation<U>> MeasureBoth() const
     {
-        std::size_t index = -1;
+        std::int32_t index = -1;
 
         std::vector<std::int32_t> indices;
 
@@ -437,11 +437,11 @@ private:
     std::list<::Setup> setups_;
     Operation<T> control_;
     std::vector<Operation<T>> candidates_;
-    Compare<T> compare_;
     std::list<Predicate> ignorePredicates_;
     std::list<Predicate> runIfPredicates_;
     std::list<Publisher<U>> publishers_;
     std::list<Publisher<U>> asyncPublishers_;
+    Compare<T> compare_;
     Transform<T,U> cleanup_;
 };
 
@@ -467,7 +467,7 @@ class ExperimentBuilder : public ExperimentInterface<T, U>
 public:
     ExperimentBuilder(std::string name) : name_(std::move(name)) {}
 
-    virtual void BeforeRun(Setup setup)
+    virtual void BeforeRun(Setup setup) override
     {
         setups_.push_back(setup);
     }
@@ -482,37 +482,37 @@ public:
         candidates_.push_back(candidate);
     }
 
-    virtual void Ignore(Predicate ignore)
+    virtual void Ignore(Predicate ignore) override
     {
         ignorePredicates_.push_back(ignore);
     }
 
-    virtual void RunIf(Predicate runIf)
+    virtual void RunIf(Predicate runIf) override
     {
         runIfPredicates_.push_back(runIf);
     }
 
-    virtual void Publish(Publisher<U> publisher)
+    virtual void Publish(Publisher<U> publisher) override
     {
         publishers_.push_back(publisher);
     }
 
-    virtual void PublishAsync(Publisher<U> publisher)
+    virtual void PublishAsync(Publisher<U> publisher) override
     {
         asyncPublishers_.push_back(publisher);
     }
 
-    virtual void Compare(::Compare<T> compare)
+    virtual void Compare(::Compare<T> compare) override
     {
         compare_ = compare;
     }
 
-    virtual void Cleanup(Transform<T,U> cleanup)
+    virtual void Cleanup(Transform<T,U> cleanup) override
     {
         cleanup_ = cleanup;
     }
 
-    virtual void Context(std::string key, std::string value)
+    virtual void Context(std::string key, std::string value) override
     {
         context_[key] = value;
     }
