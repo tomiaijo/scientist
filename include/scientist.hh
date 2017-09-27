@@ -40,19 +40,19 @@ public:
             control_(control),
             candidates_(candidates)
     {
-    };
+    }
 
-    const std::string& Name() const { return name_; };
-    bool Success() const { return success_; };
+    const std::string& Name() const { return name_; }
+    bool Success() const { return success_; }
 
-    std::chrono::nanoseconds ControlDuration() const { return std::get<1>(control_); };
-    std::exception_ptr ControlException() const { return std::get<2>(control_); };
-    T ControlResult() const { return std::get<0>(control_); };
+    std::chrono::nanoseconds ControlDuration() const { return std::get<1>(control_); }
+    std::exception_ptr ControlException() const { return std::get<2>(control_); }
+    T ControlResult() const { return std::get<0>(control_); }
 
     std::size_t NumberOfCandidates() const
     {
         return candidates_.size();
-    };
+    }
 
     std::vector<std::chrono::nanoseconds> CandidateDurations() const
     {
@@ -66,7 +66,7 @@ public:
         }
 
         return result;
-    };
+    }
 
     std::chrono::nanoseconds CandidateDuration(const std::size_t index = 0) const
     {
@@ -78,7 +78,7 @@ public:
         }
 
         return result;
-    };
+    }
 
     std::vector<std::exception_ptr> CandidateExceptions() const
     {
@@ -92,7 +92,7 @@ public:
         }
 
         return result;
-    };
+    }
 
     std::exception_ptr CandidateException(const std::size_t index = 0) const
     {
@@ -104,7 +104,7 @@ public:
         }
 
         return result;
-    };
+    }
 
     std::vector<T> CandidateResults() const
     {
@@ -118,7 +118,7 @@ public:
         }
 
         return result;
-    };
+    }
 
     T CandidateResult(const std::size_t index = 0) const
     {
@@ -130,7 +130,7 @@ public:
         }
 
         return result;
-    };
+    }
 
     std::vector<std::string> ContextKeys() const
     {
@@ -142,7 +142,7 @@ public:
         }
 
         return keys;
-    };
+    }
 
     std::pair<bool, std::string> Context(std::string key) const
     {
@@ -156,7 +156,7 @@ public:
         }
 
         return result;
-    };
+    }
 
 private:
     std::string name_;
@@ -200,7 +200,7 @@ public:
             publishers_(publishers), asyncPublishers_(asyncPublishers),
             compare_(compare), cleanup_(cleanup)
     {
-    };
+    }
 
     T Run() const
     {
@@ -221,7 +221,7 @@ public:
         }
 
         return controlResult;
-    };
+    }
 
 private:
 
@@ -231,7 +231,7 @@ private:
         {
             s();
         }
-    };
+    }
 
     std::tuple<T, Observation<U>> MeasureBoth() const
     {
@@ -265,7 +265,7 @@ private:
         }
 
         return std::make_tuple(std::get<0>(control), CreateObservation(control, candidates));
-    };
+    }
 
     Observation<U> CreateObservation(Measurement control, std::vector<Measurement> candidates) const
     {
@@ -283,7 +283,7 @@ private:
         Observation<U> result(name_, success, context_, Cleanup(control), Cleanup(candidates));
 
         return result;
-    };
+    }
 
     // TODO: investigate if this actually necessary
     template <class Q = T>
@@ -298,7 +298,7 @@ private:
         std::tuple<U, std::chrono::nanoseconds, std::exception_ptr> result(cleanup_(std::get<0>(value)), std::get<1>(value), std::get<2>(value));
 
         return result;
-    };
+    }
 
     template <class Q = T>
     typename std::enable_if<std::is_same<Q, U>::value == false, std::tuple<U, std::chrono::nanoseconds, std::exception_ptr>>::type
@@ -312,7 +312,7 @@ private:
         std::tuple<U, std::chrono::nanoseconds, std::exception_ptr> result(cleanup_(std::get<0>(value)), std::get<1>(value), std::get<2>(value));
 
         return result;
-    };
+    }
 
     // TODO: investigate if this actually necessary
     template <class Q = T>
@@ -338,7 +338,7 @@ private:
         }
 
         return result;
-    };
+    }
 
     template <class Q = T>
     typename std::enable_if<std::is_same<Q, U>::value == false, std::vector<std::tuple<U, std::chrono::nanoseconds, std::exception_ptr>>>::type
@@ -372,7 +372,7 @@ private:
         std::transform(value.begin(), value.end(), result.begin(), transformer);
 
         return result;
-    };
+    }
 
     Measurement Measure(Operation<T> f) const
     {
@@ -391,7 +391,7 @@ private:
 
         auto end = std::chrono::steady_clock::now();
         return std::make_tuple(result, std::chrono::nanoseconds(end - start), exception);
-    };
+    }
 
     bool Ignored() const
     {
@@ -449,6 +449,7 @@ template <class T, class U = T>
 class ExperimentInterface
 {
 public:
+    virtual ~ExperimentInterface() {}
     virtual void BeforeRun(Setup setup) = 0;
     virtual void Use(Operation<T> control) = 0;
     virtual void Try(Operation<T> candidate) = 0;
@@ -466,6 +467,7 @@ class ExperimentBuilder : public ExperimentInterface<T, U>
 {
 public:
     ExperimentBuilder(std::string name) : name_(std::move(name)) {}
+    virtual ~ExperimentBuilder() {}
 
     virtual void BeforeRun(Setup setup) override
     {
